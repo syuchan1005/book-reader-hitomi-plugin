@@ -4,7 +4,7 @@ const plugin = {
   models: undefined,
   typeDefs: gql`
     type Mutation {
-        addHitomila(number: String! id: String!) Result!
+        addHitomila(number: String! id: String!): Result!
     }
   `,
   init(models) {
