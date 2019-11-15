@@ -11,7 +11,7 @@ const plugin = {
     plugin.models = models;
   },
   middleware: {
-    Query: () => ({
+    Mutation: () => ({
       addHitomila: (parent, { number, id }) => {
         return {
           success: true,
