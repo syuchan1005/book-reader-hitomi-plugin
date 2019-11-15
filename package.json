@@ -10,16 +10,7 @@
   "author": "syuchan1005<syuchan.dev@gmail.com>",
   "license": "MIT",
   "bookReader": {
-    "queries": {
-      "add": {
-        "name": "addHitomi",
-        "args": [
-          "id",
-          "number",
-          "url"
-        ]
-      }
-    }
+    "name": "hitomi"
   },
   "dependencies": {
     "axios": "^0.19.0",
