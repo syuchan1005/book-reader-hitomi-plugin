@@ -57,16 +57,21 @@ const plugin = {
             message: 'gallery data is not valid',
           };
         }
-        const imageUrls = gallery.map((image) => `https://${hitomi.urlFromUrlFromHash(galleryId, image)}`);
+        const imageUrls = gallery.map((image) => `https:${hitomi.urlFromUrlFromHash(galleryId, image)}`);
         const pad = imageUrls.length.toString(10).length;
 
         /* write files */
         const bookId = uuidv4();
         const tempDir = `storage/book/${bookId}`;
+        await fs.mkdir(tempDir);
         await util.asyncForEach(imageUrls, async (url, i) => {
           const filePath = `${tempDir}/${i.toString().padStart(pad, '0')}.jpg`;
           const imageBuf = await axios.get(url, {
             responseType: 'arraybuffer',
+            headers: {
+              'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.97 Safari/537.36',
+              'referer': `https://hitomi.la/reader/${galleryId}.html`
+            },
           }).then(({ data }) => Buffer.from(data, 'binary'));
           if (/\.jpe?g$/.test(url)) {
             await fs.writeFile(filePath, imageBuf);
