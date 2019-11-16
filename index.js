@@ -57,7 +57,7 @@ const plugin = {
             message: 'gallery data is not valid',
           };
         }
-        const imageUrls = `https:${gallery.map((image) => hitomi.urlFromUrlFromHash(galleryId, image))}`;
+        const imageUrls = gallery.map((image) => `https://${hitomi.urlFromUrlFromHash(galleryId, image)}`);
         const pad = imageUrls.length.toString(10).length;
 
         /* write files */
