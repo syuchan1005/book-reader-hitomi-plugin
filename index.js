@@ -18,7 +18,8 @@ const plugin = {
       sequelize,
     }, {
       gm,
-    }) => ({
+      pubsub,
+    }, keys) => ({
       addHitomi: async (parent, { id, number, url }) => {
         /* BookInfo check */
         const bookInfo = await BookInfoModel.findOne({
@@ -42,6 +43,10 @@ const plugin = {
         const galleryId = numbers[numbers.length - 1];
 
         /* get gallery info */
+        await pubsub.publish(keys.ADD_BOOKS, {
+          id,
+          addBooks: 'Download Image Info',
+        });
         let gallery = [];
         try {
           const galleryInfo = await axios.get(`https://ltn.hitomi.la/galleries/${galleryId}.js`)
@@ -68,6 +73,10 @@ const plugin = {
         await fs.mkdir(tempDir);
         await util.asyncForEach(imageUrls, async (url, i) => {
           const filePath = `${tempDir}/${i.toString().padStart(pad, '0')}.jpg`;
+          await pubsub.publish(keys.ADD_BOOKS, {
+            id,
+            addBooks: `Download Image ${i.toString().padStart(pad, '0')}`,
+          });
           const imageBuf = await axios.get(url, {
             responseType: 'arraybuffer',
             headers: {
@@ -75,6 +84,10 @@ const plugin = {
               'referer': `https://hitomi.la/reader/${galleryId}.html`
             },
           }).then(({ data }) => Buffer.from(data, 'binary'));
+          await pubsub.publish(keys.ADD_BOOKS, {
+            id,
+            addBooks: `Write Image ${i.toString().padStart(pad, '0')}`,
+          });
           if (/\.jpe?g$/.test(url)) {
             await fs.writeFile(filePath, imageBuf);
           } else {
@@ -87,6 +100,10 @@ const plugin = {
         });
 
         /* write database */
+        await pubsub.publish(keys.ADD_BOOKS, {
+          id,
+          addBooks: 'Write Database',
+        });
         const bThumbnail = `/book/${bookId}/${'0'.padStart(pad, '0')}.jpg`;
         await sequelize.transaction(async (transaction) => {
           await BookModel.create({
