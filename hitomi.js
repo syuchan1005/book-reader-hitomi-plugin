@@ -1,28 +1,38 @@
-const path = require('path');
-
 const hitomi = {
   urlFromUrlFromHash: (gId, image) => hitomi.urlFromUrl(hitomi.urlFromHash(gId, image)),
-  urlFromHash: (gId, image) => (!image.hash)
-    ? `//a.hitomi.la/galleries/${gId}/${image.name}`
-    : `//a.hitomi.la/images/${hitomi.fullPathFromHash(image.hash)}${path.extname(image.name)}`,
-  fullPathFromHash: (hash) => (hash.length < 3) ? hash : hash.replace(/^.*(..)(.)$/, `$2/$1/${hash}`),
+  urlFromHash: (gId, image) => {
+    const ext = image.name.split('.').pop();
+    const dir = 'images';
+
+    return `https://a.hitomi.la/${dir}/${hitomi.fullPathFromHash(image.hash)}.${ext}`;
+  },
+  fullPathFromHash: (hash) => ((hash.length < 3) ? hash : hash.replace(/^.*(..)(.)$/, `$2/$1/${hash}`)),
   urlFromUrl: (url, base) => url.replace(/\/\/..?\.hitomi\.la\//, `//${hitomi.subDomainFromUrl(url, base)}.hitomi.la/`),
   subDomainFromUrl: (url, base) => {
-    let subDomain = base || 'a';
-    let m = /\/galleries\/\d*(\d)\//.exec(url);
-    let b = 10;
-    if (!m) {
-      b = 16;
-      m = /\/images\/[0-9a-f]\/([0-9a-f]{2})\//.exec(url);
-      if (!m) return subDomain;
+    const retval = base || 'a';
+    const b = 16;
+    let numberOfFrontend = 3;
+
+    const r = /\/[0-9a-f]\/([0-9a-f]{2})\//;
+    const m = r.exec(url);
+    if (!m) return retval;
+
+    let g = parseInt(m[1], b);
+    if (!Number.isNaN(g)) {
+      if (g < 0x30) {
+        numberOfFrontend = 2;
+      }
+      if (g < 0x09) {
+        g = 1;
+      }
+      return hitomi.subDomainFromGalleryId(g, numberOfFrontend) + retval;
     }
 
-    const g = parseInt(m[1], b);
-    if (isNaN(g)) return subDomain;
-
-    return `${hitomi.subDomainFromGalleryId(g)}${subDomain}`;
+    return retval;
   },
-  subDomainFromGalleryId: (g) => String.fromCharCode(97 + (g % 3 /* common.js > number_of_frontends */)),
+  subDomainFromGalleryId: (g, numberOfFrontend = 3) => String.fromCharCode(
+    97 + (g % numberOfFrontend),
+  ),
 };
 
 module.exports = hitomi;
