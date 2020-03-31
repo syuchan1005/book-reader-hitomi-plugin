@@ -2,12 +2,14 @@ const fs = require('fs').promises;
 
 const gql = require('graphql-tag');
 const axios = require('axios').default;
-const uuidv4 = require('uuid/v4');
+const uuidv4 = require('uuid').v4;
+const rimraf = require('rimraf');
 
 const hitomi0 = require('./hitomi_0');
 const hitomi = require('./hitomi');
 const util = require('./util');
 
+// noinspection JSUnusedGlobalSymbols
 const plugin = {
   typeDefs: gql`type Mutation {
       addHitomi(id: ID! number: String! url: String!): Result!
@@ -49,7 +51,7 @@ const plugin = {
           addBooks: 'Download Image Info',
         });
         let newGallery = false;
-        let gallery;
+        let gallery = { files: [] };
         try {
           const galleryInfo = await axios.get(`https://ltn.hitomi.la/galleries/${galleryId}.js`)
             .then(({ data }) => data);
@@ -79,12 +81,18 @@ const plugin = {
         /* write files */
         const bookId = uuidv4();
         const tempDir = `storage/book/${bookId}`;
+        const catchFunc = (err) => new Promise((resolve, reject) => {
+          rimraf(tempDir, () => {
+            reject(err);
+          });
+        });
         await fs.mkdir(tempDir);
+        const totalStr = imageUrls.length.toString().padStart(pad, '0');
         await util.asyncForEach(imageUrls, async (url, i) => {
           const filePath = `${tempDir}/${i.toString().padStart(pad, '0')}.jpg`;
           await pubsub.publish(keys.ADD_BOOKS, {
             id,
-            addBooks: `Download Image ${i.toString().padStart(pad, '0')}`,
+            addBooks: `Download Image ${i.toString().padStart(pad, '0')}/${totalStr}`,
           });
           const imageBuf = await axios.get(url, {
             responseType: 'arraybuffer',
@@ -93,12 +101,6 @@ const plugin = {
               referer: `https://hitomi.la/reader/${galleryId}.html`,
             },
           }).then(({ data }) => Buffer.from(data, 'binary'));
-          /*
-          await pubsub.publish(keys.ADD_BOOKS, {
-            id,
-            addBooks: `Write Image ${i.toString().padStart(pad, '0')}`,
-          });
-          */
           if (/\.jpe?g$/.test(url)) {
             await fs.writeFile(filePath, imageBuf);
           } else {
@@ -108,7 +110,7 @@ const plugin = {
                 .write(filePath, resolve);
             }));
           }
-        });
+        }).catch(catchFunc);
 
         /* write database */
         await pubsub.publish(keys.ADD_BOOKS, {
@@ -154,7 +156,7 @@ const plugin = {
             },
             transaction,
           });
-        });
+        }).catch(catchFunc);
 
         return { success: true };
       },
