@@ -15,14 +15,7 @@ const plugin = {
       addHitomi(id: ID! number: String! url: String!): Result!
   }`,
   middleware: {
-    Mutation: ({
-      BookModel,
-      BookInfoModel,
-      sequelize,
-    }, {
-      gm,
-      pubsub,
-    }, keys) => ({
+    Mutation: ({ BookModel, BookInfoModel, sequelize }, { pubsub, util: { saveImage } }, keys) => ({
       addHitomi: async (parent, { id, number, url: argUrl }) => {
         /* BookInfo check */
         const bookInfo = await BookInfoModel.findOne({
@@ -101,15 +94,7 @@ const plugin = {
               referer: `https://hitomi.la/reader/${galleryId}.html`,
             },
           }).then(({ data }) => Buffer.from(data, 'binary'));
-          if (/\.jpe?g$/.test(url)) {
-            await fs.writeFile(filePath, imageBuf);
-          } else {
-            await (new Promise((resolve) => {
-              gm(imageBuf)
-                .quality(85)
-                .write(filePath, resolve);
-            }));
-          }
+          await saveImage(filePath, imageBuf);
         }).catch(catchFunc);
 
         /* write database */
